@@ -1,0 +1,100 @@
+#define LED 13
+#define BUTTON 2
+
+int previousState = 0;
+int clickCount = 0;
+int currentState;
+
+const int MY_NUMBER = 12;
+const char* MY_SURNAME = "MAZALOV";
+
+const int TIME_BASE = 150;
+const int DOT = TIME_BASE;
+const int DASH = TIME_BASE * 3;
+const int SYMBOL_GAP = TIME_BASE;
+const int LETTER_GAP = TIME_BASE * 3;
+const int WORD_GAP = TIME_BASE * 7;
+
+const char* MORSE_CODES[] = {
+    ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....",
+    "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.",
+    "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-",
+    "-.--", "--.."
+};
+
+void lightSignal(int duration) {
+    digitalWrite(LED, 1);
+    delay(duration);
+    digitalWrite(LED, 0);
+    delay(SYMBOL_GAP);
+}
+
+void transmitSymbol(char symbol) {
+    symbol = toupper(symbol);
+    
+    if (symbol == ' ') {
+        delay(WORD_GAP);
+        return;
+    }
+    
+    if (symbol >= 'A' && symbol <= 'Z') {
+        const char* code = MORSE_CODES[symbol - 'A'];
+        for (int i = 0; code[i] != '\0'; i++) {
+            if (code[i] == '.') {
+                lightSignal(DOT);
+            } else if (code[i] == '-') {
+                lightSignal(DASH);
+            }
+        }
+    }
+    delay(LETTER_GAP);
+}
+
+void configurePins() {
+    pinMode(LED, OUTPUT);
+    pinMode(BUTTON, INPUT);
+}
+
+void setup() {
+    configurePins();
+    Serial.begin(9600);
+}
+
+void processClicks() {
+    currentState = digitalRead(BUTTON);
+
+    if (currentState == HIGH && previousState == LOW) {
+        clickCount++;
+        Serial.println(clickCount);
+        
+        switch(clickCount) {
+            case 1:
+                Serial.println("Первое нажатие - мигаем 12 раз");
+                for (int i = 0; i < MY_NUMBER; i++) {
+                    digitalWrite(LED, HIGH);
+                    delay(500);
+                    digitalWrite(LED, LOW);
+                    delay(500);
+                }
+                Serial.println("Задержка - 2 секунды");
+                delay(2000);
+                Serial.println("Задержка завершена, ожидаем следующее нажатие"); 
+                break;
+                
+            case 2:
+                Serial.println("Второе нажатие - отправляем фамилию в морзе");
+                for (int i = 0; MY_SURNAME[i] != '\0'; i++) {
+                    transmitSymbol(MY_SURNAME[i]);
+                }
+                Serial.println("Передача фамилии завершена"); 
+                clickCount = 0;
+                break;
+        }
+    }
+    previousState = currentState;
+    delay(50);
+}
+
+void loop() {
+    processClicks();
+}
