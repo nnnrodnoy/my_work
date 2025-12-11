@@ -1,0 +1,73 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+unsigned long time = 0;
+unsigned long time1 = 0;
+
+void setup() {
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+
+  time1 = millis();
+
+  lcd.setCursor(0, 0);
+  lcd.print("Waiting...");
+  
+  Serial.println("Введите время.");
+  Serial.println("Формат: чч.мм.");
+}
+
+void loop() {
+  if(Serial.available()){
+    String input = Serial.readString();
+    input.trim();
+
+    if(input.length() == 5 && input.indexOf('.') == 2){
+      String hourStr = input.substring(0, 2);
+      String minStr = input.substring(3, 5);
+
+      int hour = hourStr.toInt();
+      int minut = minStr.toInt();
+
+      if(hour >= 0 && hour <= 23 && minut >= 0 && minut <= 59){
+        unsigned long tar = (hour * 3600000UL) + (minut * 60000UL);
+        time1 = tar - (millis() % 86400000UL);
+        
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Wating...");
+        
+        Serial.print("Текущее время: ");
+        Serial.println(input);
+      }
+    }
+  }
+  updateTime();
+}
+
+void updateTime(){
+  unsigned long cur;
+  
+  if (time1 != 0) {
+    cur = (millis() + time1) % 86400000UL;
+  } else {
+    cur = millis();
+  }
+  
+  int hour = cur / 3600000UL;
+  int minut = (cur % 3600000UL) / 60000UL;
+  int second = (cur % 60000UL) / 1000UL;
+  int millisecond = cur % 1000UL;
+  
+  char timeString[17];
+  sprintf(timeString, "%02d:%02d:%02d:%03d", hour, minut, second, millisecond);
+  
+  lcd.setCursor(0, 1);
+  lcd.print(timeString);
+  
+  delay(100);
+}
